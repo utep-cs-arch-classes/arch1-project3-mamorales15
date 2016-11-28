@@ -55,7 +55,7 @@ typedef struct MovLayer_s {
 /* initial value of {0,0} will be overwritten */
 // MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
 // MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer ml0 = { &layer0, {2,1}, 0 }; 
+MovLayer snakeHead = { &layer0, {1,0}, 0 }; 
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
@@ -105,6 +105,8 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
  */
 void mlAdvance(MovLayer *ml, Region *fence)
 {
+  drawString5x7(20,20, "Score: ???", COLOR_BLACK, bgColor);
+
   Vec2 newPos;
   u_char axis;
   Region shapeBoundary;
@@ -147,8 +149,6 @@ void main()
   layerInit(&layer0);
   layerDraw(&layer0);
 
-  // drawString5x7(20,20, "Score: ???", COLOR_BLACK, bgColor);
-
   layerGetBounds(&fieldLayer, &fieldFence);
 
 
@@ -163,7 +163,30 @@ void main()
     }
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
-    movLayerDraw(&ml0, &layer0);
+    movLayerDraw(&snakeHead, &layer0);
+  }
+}
+
+void moveSnakePieces(MovLayer *movLayers) {
+  MovLayer *movLayer;
+  
+  for(movLayer = movLayers; movLayer; movLayer = movLayer->next) {
+    if(getButtonPressed() == 1) { // Move up
+      movLayer->velocity.axes[0] = 0;
+      movLayer->velocity.axes[1] = -1;
+    }
+    if(getButtonPressed() == 2) { // Move down
+      movLayer->velocity.axes[0] = 0;
+      movLayer->velocity.axes[1] = 1;
+    }
+    if(getButtonPressed() == 3) { // Move left
+      movLayer->velocity.axes[0] = -1;
+      movLayer->velocity.axes[1] = 0;
+    }
+    if(getButtonPressed() == 4) { // Move right
+      movLayer->velocity.axes[0] = 1;
+      movLayer->velocity.axes[1] = 0;
+    }
   }
 }
 
@@ -174,14 +197,15 @@ void wdt_c_handler()
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
   if (count == 15) {
-    mlAdvance(&ml0, &fieldFence);
-    
+    moveSnakePieces(&snakeHead);
+    mlAdvance(&snakeHead, &fieldFence);
+    /*
     if(getButtonPressed() != -1) {
       P1OUT |= RED_LED; // turn led on
     } else {
       P1OUT &= ~RED_LED; // turn led off
     }
-
+    */
     redrawScreen = 1;
     count = 0;
   }
