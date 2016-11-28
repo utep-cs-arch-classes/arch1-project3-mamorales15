@@ -1,4 +1,4 @@
-/** \file shapemotion.c
+/** \file snake.c
  *  \brief This is a simple shape motion demo.
  *  This demo creates two layers containing shapes.
  *  One layer contains a rectangle and the other a circle.
@@ -10,14 +10,15 @@
 #include <libTimer.h>
 #include <lcdutils.h>
 #include <lcddraw.h>
-#include <p2switches.h>
+//#include <p2switches.h>
 #include <shape.h>
 #include <abCircle.h>
-
+#include "button.h"
 #define GREEN_LED BIT6
+#define RED_LED BIT0
 
 
-AbRect rect5 = {abRectGetBounds, abRectCheck, {5,5}}; /**< 10x10 rectangle */
+AbRect rect5 = {abRectGetBounds, abRectCheck, {5,5}}; /**< 5x5 rectangle */
 AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
 
 AbRectOutline fieldOutline = {	/* playing field */
@@ -139,13 +140,14 @@ void main()
   configureClocks();
   lcd_init();
   shapeInit();
-  p2sw_init(1);
-
+  // p2sw_init(1); // Could not figure out how to get the mask to work, implemented my own buttons
   shapeInit();
+  button_init();
 
   layerInit(&layer0);
   layerDraw(&layer0);
 
+  // drawString5x7(20,20, "Score: ???", COLOR_BLACK, bgColor);
 
   layerGetBounds(&fieldLayer, &fieldFence);
 
@@ -154,7 +156,7 @@ void main()
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
 
-  for(;;) { 
+  for(;;) {
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
@@ -173,8 +175,14 @@ void wdt_c_handler()
   count ++;
   if (count == 15) {
     mlAdvance(&ml0, &fieldFence);
-    if (p2sw_read())
-      redrawScreen = 1;
+    
+    if(getButtonPressed() != -1) {
+      P1OUT |= RED_LED; // turn led on
+    } else {
+      P1OUT &= ~RED_LED; // turn led off
+    }
+
+    redrawScreen = 1;
     count = 0;
   }
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
