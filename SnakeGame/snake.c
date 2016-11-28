@@ -7,26 +7,35 @@
  *  is turned off along with the green LED.
  */  
 #include <msp430.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <libTimer.h>
 #include <lcdutils.h>
 #include <lcddraw.h>
-//#include <p2switches.h>
 #include <shape.h>
 #include <abCircle.h>
 #include "button.h"
 #define GREEN_LED BIT6
 #define RED_LED BIT0
 
+char scoreTen = 0;
+char scoreOne = 0;
+char scoreMess[10] = "Score: ";
 
 AbRect rect5 = {abRectGetBounds, abRectCheck, {5,5}}; /**< 5x5 rectangle */
-AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+
+int myRand(int min, int max) {
+  // Not exactly uniform randonmess but suits my purpose
+  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
+}
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
   {screenWidth/2 - 10, screenHeight/2 - 10}
 };
 
-Layer fieldLayer = {		/* playing field as a layer */
+Layer fieldLayer2 = {		/* playing field as a layer */
   (AbShape *) &fieldOutline,
   {screenWidth/2, screenHeight/2},/**< center */
   {0,0}, {0,0},				    /* last & next pos */
@@ -34,12 +43,20 @@ Layer fieldLayer = {		/* playing field as a layer */
   0
 };
 
-Layer layer0 = {		/**< Layer with a red square */
+Layer foodLayer1 = {		/**< Layer with a red square */
   (AbShape *)&rect5,
-  {screenWidth/2, screenHeight/2}, /**< center */
+  {0, 0}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_RED,
-  &fieldLayer,
+  &fieldLayer2,
+};
+
+Layer snakeLayer0 = {		/**< Layer with a red square */
+  (AbShape *)&rect5,
+  {0, 0}, /**< center */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_RED,
+  &foodLayer1,
 };
 								  
 /** Moving Layer
@@ -55,7 +72,30 @@ typedef struct MovLayer_s {
 /* initial value of {0,0} will be overwritten */
 // MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
 // MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer snakeHead = { &layer0, {1,0}, 0 }; 
+MovLayer snakeHead = { &snakeLayer0, {1,0}, 0 };
+
+
+void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
+  result->axes[0] = col;
+  result->axes[1] = row;
+}
+
+void generateFood() {
+  //moveLayer(&foodLayer1, myRand(0, screenWidth), myRand(0, screenHeight));
+}
+
+void game_init(MovLayer *snakeHead) {
+  /*
+  Vec2 newPos;
+  moveLayer(&newPos, &snakeHead->layer->posNext, 50, 50);
+  snakeHead->layer->posNext = newPos;
+  generateFood();
+  */
+  // Create scoreboard string
+  scoreTen = 0;
+  scoreOne = 0;
+  //scoreMess[10] = "Score: ";
+}
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
@@ -94,7 +134,18 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
   } // for moving layer being updated
 }	  
 
-
+void incrementScore() {
+  if(scoreOne == 9) { // Carry over to tens place
+    scoreOne = 0;
+    if(scoreTen == 9) { // Limit on score is 99. Reset it to 0 after that.
+      scoreTen = 0;
+    } else {
+      scoreTen = scoreTen + 1;
+    }
+  } else {
+    scoreOne = scoreOne + 1; // Increment ones
+  }
+}
 
 //Region fence = {{10,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}}; /**< Create a fence region */
 
@@ -105,8 +156,13 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
  */
 void mlAdvance(MovLayer *ml, Region *fence)
 {
-  drawString5x7(20,20, "Score: ???", COLOR_BLACK, bgColor);
-
+  // Display score
+  incrementScore(); // For testing the score
+  scoreMess[7] = '0' + scoreTen;
+  scoreMess[8] = '0' + scoreOne;
+  drawString5x7(20,20, scoreMess, COLOR_BLACK, bgColor);
+  
+  
   Vec2 newPos;
   u_char axis;
   Region shapeBoundary;
@@ -116,16 +172,16 @@ void mlAdvance(MovLayer *ml, Region *fence)
     for (axis = 0; axis < 2; axis ++) {
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
-	int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
-	newPos.axes[axis] += (2*velocity);
+        drawString5x7(30, 75, "GAME OVER!!!", COLOR_RED, bgColor);
+	game_init(&snakeHead);
+	
       }	/**< if outside of fence */
     } /**< for axis */
     ml->layer->posNext = newPos;
   } /**< for ml */
 }
 
-
-u_int bgColor = COLOR_BLUE;     /**< The background color */
+u_int bgColor = COLOR_WHITE;     /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
 
 Region fieldFence;		/**< fence around playing field  */
@@ -142,14 +198,13 @@ void main()
   configureClocks();
   lcd_init();
   shapeInit();
-  // p2sw_init(1); // Could not figure out how to get the mask to work, implemented my own buttons
-  shapeInit();
   button_init();
+  game_init(&snakeHead);
+  
+  layerInit(&snakeLayer0);
+  layerDraw(&snakeLayer0);
 
-  layerInit(&layer0);
-  layerDraw(&layer0);
-
-  layerGetBounds(&fieldLayer, &fieldFence);
+  layerGetBounds(&fieldLayer2, &fieldFence);
 
 
   enableWDTInterrupts();      /**< enable periodic interrupt */
@@ -161,9 +216,10 @@ void main()
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
     }
+    
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
-    movLayerDraw(&snakeHead, &layer0);
+    movLayerDraw(&snakeHead, &snakeLayer0);
   }
 }
 
@@ -199,13 +255,7 @@ void wdt_c_handler()
   if (count == 15) {
     moveSnakePieces(&snakeHead);
     mlAdvance(&snakeHead, &fieldFence);
-    /*
-    if(getButtonPressed() != -1) {
-      P1OUT |= RED_LED; // turn led on
-    } else {
-      P1OUT &= ~RED_LED; // turn led off
-    }
-    */
+    
     redrawScreen = 1;
     count = 0;
   }
