@@ -25,11 +25,6 @@ char scoreMess[10] = "Score: ";
 
 AbRect rect5 = {abRectGetBounds, abRectCheck, {5,5}}; /**< 5x5 rectangle */
 
-int myRand(int min, int max) {
-  // Not exactly uniform randonmess but suits my purpose
-  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
-}
-
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
   {screenWidth/2 - 10, screenHeight/2 - 10}
@@ -55,7 +50,7 @@ Layer snakeLayer0 = {		/**< Layer with a red square */
   (AbShape *)&rect5,
   {screenWidth/2, screenHeight/2}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
+  COLOR_GREEN,
   &foodLayer1,
 };
 								  
@@ -80,33 +75,22 @@ void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
   result->axes[1] = row;
 }
 
-void generateFood(MovLayer *myFoodLayer) {
-  //moveLayer(&foodLayer1, myRand(0, screenWidth), myRand(0, screenHeight));
-  /*
-  Vec2 newPos;
-  int randCol = myRand(0, screenWidth);
-  int randRow = myRand(0, screenHeight);
-  moveLayer(&newPos, &myFoodLayer->layer->posNext, randCol, randRow);
-  myFoodLayer->layer->posNext = newPos;
-  */
-}
-
-void game_init(MovLayer *snakeHead) {
-  
-  //Vec2 newPos;
-  //moveLayer(&newPos, &snakeHead->layer->posNext, 50, 50);
-  //moveLayer(&newPos, &ml->layer->posNext, 50, 50);
-  //snakeHead->layer->posNext = newPos;
-  //generateFood(&foodLayer1);
-  
-  Vec2 newPos;
-  moveLayer(&newPos, &snakeHead->layer->posNext, 50, 50);
-  snakeHead->layer->posNext = newPos;
-  
-  // Create scoreboard string
+void resetScore() {
   scoreTen = 0;
   scoreOne = 0;
-  //scoreMess[10] = "Score: ";
+}
+
+void incrementScore() {
+  if(scoreOne == 9) { // Carry over to tens place
+    scoreOne = 0;
+    if(scoreTen == 9) { // Limit on score is 99. Reset it to 0 after that.
+      scoreTen = 0;
+    } else {
+      scoreTen = scoreTen + 1;
+    }
+  } else {
+    scoreOne = scoreOne + 1; // Increment ones
+  }
 }
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
@@ -146,19 +130,6 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
   } // for moving layer being updated
 }	  
 
-void incrementScore() {
-  if(scoreOne == 9) { // Carry over to tens place
-    scoreOne = 0;
-    if(scoreTen == 9) { // Limit on score is 99. Reset it to 0 after that.
-      scoreTen = 0;
-    } else {
-      scoreTen = scoreTen + 1;
-    }
-  } else {
-    scoreOne = scoreOne + 1; // Increment ones
-  }
-}
-
 //Region fence = {{10,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}}; /**< Create a fence region */
 
 /** Advances a moving shape within a fence
@@ -169,7 +140,6 @@ void incrementScore() {
 void mlAdvance(MovLayer *ml, Region *fence)
 {
   // Display score
-  incrementScore(); // For testing the score
   scoreMess[7] = '0' + scoreTen;
   scoreMess[8] = '0' + scoreOne;
   drawString5x7(20,20, scoreMess, COLOR_BLACK, bgColor);
@@ -184,11 +154,10 @@ void mlAdvance(MovLayer *ml, Region *fence)
     for (axis = 0; axis < 2; axis ++) {
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
-        drawString5x7(30, 75, "GAME OVER!!!", COLOR_RED, bgColor);
+        // drawString5x7(30, 75, "GAME OVER!!!", COLOR_RED, bgColor);
 
-	//moveLayer(&newPos, &ml->layer->posNext, 50, 50);
-  
-	game_init(&snakeHead);
+	moveLayer(&newPos, &ml->layer->posNext, screenWidth/2, screenHeight/2);
+	resetScore();
 	
       }	/**< if outside of fence */
     } /**< for axis */
@@ -201,6 +170,24 @@ int redrawScreen = 1;           /**< Boolean for whether screen needs to be redr
 
 Region fieldFence;		/**< fence around playing field  */
 
+int myRand(int min, int max) {
+  // Not uniform randonmess but suits my purpose
+  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
+}
+
+void generateFood() {
+  int randCol = myRand(0, screenWidth);
+  int randRow = myRand(0, screenHeight);
+  // TODO: move food to this pos
+  Vec2 newPos;
+  Layer *test = &foodLayer1;
+  moveLayer(&newPos, &test->posNext, 50, 50);
+  test->posNext = newPos;
+}
+
+void game_init() {
+  generateFood();
+}
 
 /** Initializes everything, enables interrupts and green LED, 
  *  and handles the rendering for the screen
@@ -214,8 +201,7 @@ void main()
   lcd_init();
   shapeInit();
   button_init();
-
-  game_init(&snakeHead);
+  game_init();
   
   layerInit(&snakeLayer0);
   layerDraw(&snakeLayer0);
