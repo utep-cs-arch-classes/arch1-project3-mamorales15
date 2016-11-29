@@ -22,6 +22,7 @@
 
 char scoreTen = 0;
 char scoreOne = 0;
+int score = 0;
 char scoreMess[10] = "Score: ";
 int buzzerOn = 0;
 
@@ -80,6 +81,7 @@ void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
 void resetScore() {
   scoreTen = 0;
   scoreOne = 0;
+  score = 0;
 }
 
 void incrementScore() {
@@ -93,6 +95,7 @@ void incrementScore() {
   } else {
     scoreOne = scoreOne + 1; // Increment ones
   }
+  score = score + 1;
 }
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
@@ -150,7 +153,14 @@ void mlAdvance(MovLayer *ml, Region *fence)
   Vec2 newPos;
   u_char axis;
   Region shapeBoundary;
+  
   for (; ml; ml = ml->next) {
+    if(score > 0){
+      Vec2 newVelocity = {
+	{score,score}
+      };
+      ml->velocity = newVelocity;
+    }
     vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
     for (axis = 0; axis < 2; axis ++) {
