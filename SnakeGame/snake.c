@@ -16,12 +16,14 @@
 #include <shape.h>
 #include <abCircle.h>
 #include "button.h"
+#include "tone.h"
 #define GREEN_LED BIT6
 #define RED_LED BIT0
 
 char scoreTen = 0;
 char scoreOne = 0;
 char scoreMess[10] = "Score: ";
+int buzzerOn = 0;
 
 AbRect rect5 = {abRectGetBounds, abRectCheck, {5,5}}; /**< 5x5 rectangle */
 
@@ -158,6 +160,10 @@ void mlAdvance(MovLayer *ml, Region *fence)
 
 	moveLayer(&newPos, &ml->layer->posNext, screenWidth/2, screenHeight/2);
 	resetScore();
+
+	// Play end game tone
+	tone_set_period(500);
+	buzzerOn = 1;
 	
       }	/**< if outside of fence */
     } /**< for axis */
@@ -199,6 +205,7 @@ void main()
 
   configureClocks();
   lcd_init();
+  tone_init();
   shapeInit();
   button_init();
   game_init();
@@ -217,6 +224,15 @@ void main()
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
+    }
+
+    // Turn off buzzer after 5 cycles
+    if(buzzerOn >= 1) {
+      buzzerOn = buzzerOn + 1;
+      if(buzzerOn == 5) {
+	tone_set_period(0);
+	buzzerOn = 0;
+      }
     }
     
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */

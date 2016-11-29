@@ -1,0 +1,24 @@
+#include <msp430.h>
+#include "tone.h"
+#include "game.h"
+
+void tone_set_period(short cycles) {
+  CCR0 = cycles;
+  CCR1 = cycles >> 1;
+}
+
+void tone_init() {
+  timerAUpmode();  // used to drive speaker
+  P2SEL2 &= ~(BIT6 | BIT7);
+  P2SEL &= ~BIT7;
+  P2SEL |= BIT6;
+  P2DIR = BIT6;  // enable output to speaker
+}
+
+void reset_tones() {
+  int i = 0;
+  for(i = 0; i < MAX_GAME_LEVEL; i = i + 1) {
+    tones[i] = 0;
+  }
+}
+
