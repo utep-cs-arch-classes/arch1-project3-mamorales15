@@ -15,7 +15,7 @@ load: snake.elf
 	mspdebug rf2500 "prog $^"
 
 clean:
-	rm -f *.o *.elf
+	rm -f *.o *.elf *.*~
 
 tone.c: tone.h
 snake.c: button.h
