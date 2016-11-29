@@ -45,7 +45,7 @@ Layer fieldLayer2 = {		/* playing field as a layer */
 
 Layer foodLayer1 = {		/**< Layer with a red square */
   (AbShape *)&rect5,
-  {0, 0}, /**< center */
+  {0, 0},
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_RED,
   &fieldLayer2,
@@ -53,7 +53,7 @@ Layer foodLayer1 = {		/**< Layer with a red square */
 
 Layer snakeLayer0 = {		/**< Layer with a red square */
   (AbShape *)&rect5,
-  {0, 0}, /**< center */
+  {screenWidth/2, screenHeight/2}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_RED,
   &foodLayer1,
@@ -80,17 +80,29 @@ void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
   result->axes[1] = row;
 }
 
-void generateFood() {
+void generateFood(MovLayer *myFoodLayer) {
   //moveLayer(&foodLayer1, myRand(0, screenWidth), myRand(0, screenHeight));
+  /*
+  Vec2 newPos;
+  int randCol = myRand(0, screenWidth);
+  int randRow = myRand(0, screenHeight);
+  moveLayer(&newPos, &myFoodLayer->layer->posNext, randCol, randRow);
+  myFoodLayer->layer->posNext = newPos;
+  */
 }
 
 void game_init(MovLayer *snakeHead) {
-  /*
+  
+  //Vec2 newPos;
+  //moveLayer(&newPos, &snakeHead->layer->posNext, 50, 50);
+  //moveLayer(&newPos, &ml->layer->posNext, 50, 50);
+  //snakeHead->layer->posNext = newPos;
+  //generateFood(&foodLayer1);
+  
   Vec2 newPos;
   moveLayer(&newPos, &snakeHead->layer->posNext, 50, 50);
   snakeHead->layer->posNext = newPos;
-  generateFood();
-  */
+  
   // Create scoreboard string
   scoreTen = 0;
   scoreOne = 0;
@@ -173,6 +185,9 @@ void mlAdvance(MovLayer *ml, Region *fence)
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
         drawString5x7(30, 75, "GAME OVER!!!", COLOR_RED, bgColor);
+
+	//moveLayer(&newPos, &ml->layer->posNext, 50, 50);
+  
 	game_init(&snakeHead);
 	
       }	/**< if outside of fence */
@@ -199,6 +214,7 @@ void main()
   lcd_init();
   shapeInit();
   button_init();
+
   game_init(&snakeHead);
   
   layerInit(&snakeLayer0);
