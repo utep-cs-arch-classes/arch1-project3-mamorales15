@@ -43,7 +43,7 @@ Layer fieldLayer2 = {		/* playing field as a layer */
 
 Layer foodLayer1 = {		/**< Layer with a red square */
   (AbShape *)&rect5,
-  {0, 0},
+  {screenWidth/2 + 30, screenHeight/2},
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_RED,
   &fieldLayer2,
@@ -56,7 +56,8 @@ Layer snakeLayer0 = {		/**< Layer with a red square */
   COLOR_GREEN,
   &foodLayer1,
 };
-								  
+
+
 /** Moving Layer
  *  Linked list of layer references
  *  Velocity represents one iteration of change (direction & magnitude)
@@ -70,8 +71,51 @@ typedef struct MovLayer_s {
 /* initial value of {0,0} will be overwritten */
 // MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
 // MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer snakeHead = { &snakeLayer0, {1,0}, 0 };
+MovLayer food = { &foodLayer1, {0,0}, 0 };
+MovLayer snakeHead = { &snakeLayer0, {1,0}, &food };
 
+int myRand(int min, int max) {
+  // Not uniform randonmess but suits my purpose
+  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
+}
+
+void generateFood() {
+  int randCol = myRand(0, screenWidth);
+  int randRow = myRand(0, screenHeight);
+  /*
+  Layer foodLayer1 = {
+    (AbShape *)&rect5,
+    {randCol, randRow},
+    {0,0}, {0,0},
+    // last & new pos
+    COLOR_RED,
+    &fieldLayer2,
+  };
+  */
+  Vec2 newPos = {
+    {randCol, randRow}
+  };
+  //scoreOne = newPos.axes[0];
+  foodLayer1.posNext = newPos;
+  //scoreTen = foodLayer1.posNext.axes[0];
+}
+
+void createNewSnake() {
+  Layer snakeLayer0 = {		/**< Layer with a red square */
+  (AbShape *)&rect5,
+  {screenWidth/2, screenHeight/2}, /**< center */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_GREEN,
+  &foodLayer1,
+};
+  //snakeHead = { &snakeLayer0, {1,0}, 0 };
+  snakeHead.layer = &snakeLayer0;
+}
+  
+void newGame() {
+  generateFood();
+  createNewSnake();
+}
 
 void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
   result->axes[0] = col;
@@ -170,7 +214,11 @@ void mlAdvance(MovLayer *ml, Region *fence)
 
 	moveLayer(&newPos, &ml->layer->posNext, screenWidth/2, screenHeight/2);
 	resetScore();
-
+	//free(&foodLayer1);
+	//free(&snakeLayer0);
+	//newGame();
+	generateFood();
+	
 	// Play end game tone
 	tone_set_period(500);
 	buzzerOn = 1;
@@ -186,25 +234,6 @@ int redrawScreen = 1;           /**< Boolean for whether screen needs to be redr
 
 Region fieldFence;		/**< fence around playing field  */
 
-int myRand(int min, int max) {
-  // Not uniform randonmess but suits my purpose
-  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
-}
-
-void generateFood() {
-  int randCol = myRand(0, screenWidth);
-  int randRow = myRand(0, screenHeight);
-  // TODO: move food to this pos
-  Vec2 newPos;
-  Layer *test = &foodLayer1;
-  moveLayer(&newPos, &test->posNext, 50, 50);
-  test->posNext = newPos;
-}
-
-void game_init() {
-  generateFood();
-}
-
 /** Initializes everything, enables interrupts and green LED, 
  *  and handles the rendering for the screen
  */
@@ -218,7 +247,6 @@ void main()
   tone_init();
   shapeInit();
   button_init();
-  game_init();
   
   layerInit(&snakeLayer0);
   layerDraw(&snakeLayer0);
