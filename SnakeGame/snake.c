@@ -20,9 +20,9 @@
 #define GREEN_LED BIT6
 #define RED_LED BIT0
 
-char scoreTen = 0;
-char scoreOne = 0;
-int score = 0;
+char scoreTen = 0; // ten's place of score to be used in message
+char scoreOne = 0; // one's place of score to be used in message
+int score = 0; // score is also saved as int to speed up gameplay based on score
 char scoreMess[10] = "Score: ";
 int buzzerOn = 0;
 
@@ -75,59 +75,23 @@ MovLayer food = { &foodLayer1, {0,0}, 0 };
 MovLayer snakeHead = { &snakeLayer0, {1,0}, &food };
 
 int myRand(int min, int max) {
-  // Not uniform randonmess but suits my purpose
-  return (rand() & (max + 1 - min)) + min; // Credit: StackOverflow
+  // Slightly biased randomn generator but suits my purposes
+  return (rand() % (max-min) ) + min;
 }
-
-void generateFood() {
-  int randCol = myRand(0, screenWidth);
-  int randRow = myRand(0, screenHeight);
-  /*
-  Layer foodLayer1 = {
-    (AbShape *)&rect5,
-    {randCol, randRow},
-    {0,0}, {0,0},
-    // last & new pos
-    COLOR_RED,
-    &fieldLayer2,
-  };
-  */
-  Vec2 newPos = {
-    {randCol, randRow}
-  };
-  //scoreOne = newPos.axes[0];
-  foodLayer1.posNext = newPos;
-  //scoreTen = foodLayer1.posNext.axes[0];
-}
-
-void createNewSnake() {
-  Layer snakeLayer0 = {		/**< Layer with a red square */
-  (AbShape *)&rect5,
-  {screenWidth/2, screenHeight/2}, /**< center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_GREEN,
-  &foodLayer1,
-};
-  //snakeHead = { &snakeLayer0, {1,0}, 0 };
-  snakeHead.layer = &snakeLayer0;
-}
-  
-void newGame() {
-  generateFood();
-  createNewSnake();
-}
-
+// Moves a layer and stores the resulting vector to be used by caller
 void moveLayer(Vec2 *result, const Vec2 *v, int col, int row) {
   result->axes[0] = col;
   result->axes[1] = row;
 }
 
+// Resets the score
 void resetScore() {
   scoreTen = 0;
   scoreOne = 0;
   score = 0;
 }
 
+// Increments the score, handles carrying
 void incrementScore() {
   if(scoreOne == 9) { // Carry over to tens place
     scoreOne = 0;
@@ -143,7 +107,7 @@ void incrementScore() {
 }
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
-{
+{  
   int row, col;
   MovLayer *movLayer;
 
@@ -154,7 +118,6 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
     l->pos = l->posNext;
   }
   or_sr(8);			/**< disable interrupts (GIE on) */
-
 
   for (movLayer = movLayers; movLayer; movLayer = movLayer->next) { /* for each moving layer */
     Region bounds;
@@ -201,31 +164,58 @@ void mlAdvance(MovLayer *ml, Region *fence)
   for (; ml; ml = ml->next) {
     if(score > 0){
       Vec2 newVelocity = {
-	{score,score}
+	{score/10,score/10}
       };
       ml->velocity = newVelocity;
     }
     vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
     for (axis = 0; axis < 2; axis ++) {
+      // Check collision with outside border
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
-        // drawString5x7(30, 75, "GAME OVER!!!", COLOR_RED, bgColor);
 
-	moveLayer(&newPos, &ml->layer->posNext, screenWidth/2, screenHeight/2);
-	resetScore();
-	//free(&foodLayer1);
-	//free(&snakeLayer0);
-	//newGame();
-	generateFood();
+	if(ml == &snakeHead){
+	  // If end of game, move snake to middle of screen
+	  moveLayer(&newPos, &ml->layer->posNext, screenWidth/2, screenHeight/2);
+	}
+	else {
+	  // generate new food
+	  int border = 15;
+	  int randCol = myRand(border, screenWidth - border);
+	  int randRow = myRand(border, screenHeight - border);
+	  moveLayer(&newPos, &ml->layer->posNext, randCol, randRow);
+	}
+
+	// Not sure why but this is needed to move the food
+	Vec2 foodNewPos;
+        food.layer->posNext = foodNewPos;
 	
+	resetScore();
+        
 	// Play end game tone
 	tone_set_period(500);
 	buzzerOn = 1;
 	
       }	/**< if outside of fence */
     } /**< for axis */
+    
+    
+    // Check for collision with food
+    if(ml != &food) {
+      
+      Region foodBoundary;
+      //abShapeGetBounds(foodLayer1.abShape, &foodLayer1.pos, &foodBoundary);
+      layerGetBounds(&foodLayer1, &foodBoundary);
+      if ((shapeBoundary.topLeft.axes[0] < foodBoundary.botRight.axes[0]) && (shapeBoundary.topLeft.axes[1] < foodBoundary.botRight.axes[1])) {
+	  incrementScore();
+	  //generateFood();
+	}
+	}
+    
+    
     ml->layer->posNext = newPos;
+    
   } /**< for ml */
 }
 
@@ -275,29 +265,34 @@ void main()
     
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
+    
     movLayerDraw(&snakeHead, &snakeLayer0);
   }
 }
 
+// Moves the snake pieces using button presses
+// Implemented my own buttons based off of my last lab instead of using the switches provided
 void moveSnakePieces(MovLayer *movLayers) {
   MovLayer *movLayer;
   
   for(movLayer = movLayers; movLayer; movLayer = movLayer->next) {
-    if(getButtonPressed() == 1) { // Move up
-      movLayer->velocity.axes[0] = 0;
-      movLayer->velocity.axes[1] = -1;
-    }
-    if(getButtonPressed() == 2) { // Move down
-      movLayer->velocity.axes[0] = 0;
-      movLayer->velocity.axes[1] = 1;
-    }
-    if(getButtonPressed() == 3) { // Move left
-      movLayer->velocity.axes[0] = -1;
-      movLayer->velocity.axes[1] = 0;
-    }
-    if(getButtonPressed() == 4) { // Move right
-      movLayer->velocity.axes[0] = 1;
-      movLayer->velocity.axes[1] = 0;
+    if(movLayer != &food){
+      if(getButtonPressed() == 1) { // Move up
+	movLayer->velocity.axes[0] = 0;
+	movLayer->velocity.axes[1] = -1;
+      }
+      if(getButtonPressed() == 2) { // Move down
+	movLayer->velocity.axes[0] = 0;
+	movLayer->velocity.axes[1] = 1;
+      }
+      if(getButtonPressed() == 3) { // Move left
+	movLayer->velocity.axes[0] = -1;
+	movLayer->velocity.axes[1] = 0;
+      }
+      if(getButtonPressed() == 4) { // Move right
+	movLayer->velocity.axes[0] = 1;
+	movLayer->velocity.axes[1] = 0;
+      }
     }
   }
 }
