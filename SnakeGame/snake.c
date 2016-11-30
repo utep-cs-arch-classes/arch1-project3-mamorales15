@@ -173,7 +173,7 @@ void mlAdvance(MovLayer *ml, Region *fence)
     for (axis = 0; axis < 2; axis ++) {
       // Check collision with outside border
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
-	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
+	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis])) {
 
 	if(ml == &snakeHead){
 	  // If end of game, move snake to middle of screen
@@ -207,12 +207,14 @@ void mlAdvance(MovLayer *ml, Region *fence)
       Region foodBoundary;
       //abShapeGetBounds(foodLayer1.abShape, &foodLayer1.pos, &foodBoundary);
       layerGetBounds(&foodLayer1, &foodBoundary);
+      /*
       if ((shapeBoundary.topLeft.axes[0] < foodBoundary.botRight.axes[0]) && (shapeBoundary.topLeft.axes[1] < foodBoundary.botRight.axes[1])) {
 	  incrementScore();
 	  //generateFood();
 	}
-	}
-    
+	
+      */
+    }
     
     ml->layer->posNext = newPos;
     
