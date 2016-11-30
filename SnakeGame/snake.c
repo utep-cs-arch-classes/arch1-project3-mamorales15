@@ -151,6 +151,9 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
  */
 void mlAdvance(MovLayer *ml, Region *fence)
 {
+  // Just to demonstrate the scoring and speed aspect
+  incrementScore();
+  
   // Display score
   scoreMess[7] = '0' + scoreTen;
   scoreMess[8] = '0' + scoreOne;
@@ -162,12 +165,7 @@ void mlAdvance(MovLayer *ml, Region *fence)
   Region shapeBoundary;
   
   for (; ml; ml = ml->next) {
-    if(score > 0){
-      Vec2 newVelocity = {
-	{score/10,score/10}
-      };
-      ml->velocity = newVelocity;
-    }
+    
     vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
     for (axis = 0; axis < 2; axis ++) {
@@ -203,17 +201,32 @@ void mlAdvance(MovLayer *ml, Region *fence)
     
     // Check for collision with food
     if(ml != &food) {
+      Vec2 *snakePos = &snakeHead.layer->pos;
+      Vec2 *foodPos = &food.layer->pos;
       
-      Region foodBoundary;
-      //abShapeGetBounds(foodLayer1.abShape, &foodLayer1.pos, &foodBoundary);
-      layerGetBounds(&foodLayer1, &foodBoundary);
-      /*
-      if ((shapeBoundary.topLeft.axes[0] < foodBoundary.botRight.axes[0]) && (shapeBoundary.topLeft.axes[1] < foodBoundary.botRight.axes[1])) {
-	  incrementScore();
-	  //generateFood();
-	}
-	
-      */
+#define snakeTop (snakePos->axes[1] - 5)
+#define snakeBot (snakePos->axes[1] + 5)
+#define foodTop (foodPos->axes[1] - 5)
+#define foodBot (foodPos->axes[1] + 5)
+#define snakeLeft (snakePos->axes[0] - 5)
+#define snakeRight (snakePos->axes[0] + 5)
+#define foodLeft (foodPos->axes[0] - 5)
+#define foodRight (foodPos->axes[0] + 5)
+#define above <=
+#define below >=
+#define leftOf <=
+#define rightOf >=
+      
+      if(
+      // left
+	 ((snakeBot below foodTop) && (snakeTop above foodBot) && (snakeRight rightOf foodLeft) && snakeLeft leftOf foodLeft) ||
+	 // right
+	 ((snakeBot below foodTop) && (snakeTop above foodBot) && (snakeLeft leftOf foodRight) && (snakeRight rightOf foodLeft))
+      ){
+	tone_set_period(4000);
+      }
+      else
+	tone_set_period(0);
     }
     
     ml->layer->posNext = newPos;
@@ -281,18 +294,30 @@ void moveSnakePieces(MovLayer *movLayers) {
     if(movLayer != &food){
       if(getButtonPressed() == 1) { // Move up
 	movLayer->velocity.axes[0] = 0;
-	movLayer->velocity.axes[1] = -1;
+	if(score > 0)
+	  movLayer->velocity.axes[1] = -score/10;
+	else
+	  movLayer->velocity.axes[1] = -1;
       }
       if(getButtonPressed() == 2) { // Move down
 	movLayer->velocity.axes[0] = 0;
-	movLayer->velocity.axes[1] = 1;
+	if(score > 0)
+	  movLayer->velocity.axes[1] = score/10;
+	else
+	  movLayer->velocity.axes[1] = 1;
       }
       if(getButtonPressed() == 3) { // Move left
-	movLayer->velocity.axes[0] = -1;
+	if(score > 0)
+	  movLayer->velocity.axes[0] = -score/10;
+	else
+	  movLayer->velocity.axes[0] = -1;
 	movLayer->velocity.axes[1] = 0;
       }
       if(getButtonPressed() == 4) { // Move right
-	movLayer->velocity.axes[0] = 1;
+	if(score > 0)
+	  movLayer->velocity.axes[0] = score/10;
+	else
+	  movLayer->velocity.axes[0] = 1;
 	movLayer->velocity.axes[1] = 0;
       }
     }
