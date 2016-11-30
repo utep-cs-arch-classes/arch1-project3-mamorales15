@@ -152,7 +152,6 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
 void mlAdvance(MovLayer *ml, Region *fence)
 {
   // Just to demonstrate the scoring and speed aspect
-  incrementScore();
   
   // Display score
   scoreMess[7] = '0' + scoreTen;
@@ -223,10 +222,17 @@ void mlAdvance(MovLayer *ml, Region *fence)
 	 // right
 	 ((snakeBot below foodTop) && (snakeTop above foodBot) && (snakeLeft leftOf foodRight) && (snakeRight rightOf foodLeft))
       ){
-	tone_set_period(4000);
+	
+	// generate new food
+	int border = 15;
+	int randCol = myRand(border, screenWidth - border);
+	int randRow = myRand(border, screenHeight - border);
+	Vec2 foodNewPos;
+	moveLayer(&foodNewPos, &ml->layer->posNext, randCol, randRow);
+        food.layer->posNext = foodNewPos;
+	
+	incrementScore();
       }
-      else
-	tone_set_period(0);
     }
     
     ml->layer->posNext = newPos;
@@ -295,27 +301,27 @@ void moveSnakePieces(MovLayer *movLayers) {
       if(getButtonPressed() == 1) { // Move up
 	movLayer->velocity.axes[0] = 0;
 	if(score > 0)
-	  movLayer->velocity.axes[1] = -score/10;
+	  movLayer->velocity.axes[1] = -score;
 	else
 	  movLayer->velocity.axes[1] = -1;
       }
       if(getButtonPressed() == 2) { // Move down
 	movLayer->velocity.axes[0] = 0;
 	if(score > 0)
-	  movLayer->velocity.axes[1] = score/10;
+	  movLayer->velocity.axes[1] = score;
 	else
 	  movLayer->velocity.axes[1] = 1;
       }
       if(getButtonPressed() == 3) { // Move left
 	if(score > 0)
-	  movLayer->velocity.axes[0] = -score/10;
+	  movLayer->velocity.axes[0] = -score;
 	else
 	  movLayer->velocity.axes[0] = -1;
 	movLayer->velocity.axes[1] = 0;
       }
       if(getButtonPressed() == 4) { // Move right
 	if(score > 0)
-	  movLayer->velocity.axes[0] = score/10;
+	  movLayer->velocity.axes[0] = score;
 	else
 	  movLayer->velocity.axes[0] = 1;
 	movLayer->velocity.axes[1] = 0;

@@ -41,8 +41,7 @@ Note: make is to be ran in arch1-project3-mamorales15 directory
 
 ### What to improve
 Unfortunately, I ran out of time to complete the project.
-There are still some bugs at the moment such as:* The game resets after a few wall-collisions
-* The game may hang and the end of game noise will not stop. You will also see that the green LED will stay lit up meaning the CPU stays on and is busy.
+There are still some bugs at the moment such as:* The game crashes in different ways. When the snake hits the food in a certain direction it can crash. Especially for the first collision. After a few wall collisions it can crash, but not always.
 Some features I would have liked to implement:
 * At the moment, the snake only has the head. Every time a food is eaten, a new moving layer should be created that the previous snake head/body part should link to. The pos of the snake body can take the posLast of the previous snake body/head.
-* At the moment, the biggest feature I am lacking is collision with the food. This may or may not be implemented by the time the project is due.
+* A song while you played would be nice.
