@@ -1,4 +1,4 @@
-#Architecture 1: Project 3 - mamorales15
+# Architecture 1: Project 3 - mamorales15
 
 ### This directory contains
 * Code to play a simple Snake game on a Texas Intrsuments MSP430
